@@ -1,12 +1,11 @@
 // src/features/analysis/types/analysis.types.ts
 export interface AnalysisSessionCreate {
-    video_id: string;
-    pipeline_spec: {
-        model_version: string;
+        video_id: string;
+        model_version?: string;
         threshold: number;
         [key: string]: unknown;
     };
-}
+
 
 export interface AnalysisSessionRead {
     id: string;

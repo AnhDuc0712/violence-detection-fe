@@ -1,6 +1,6 @@
 // src/features/analysis/components/StartAnalysisModal/StartAnalysisModal.tsx
 import { useState } from 'react';
-import type { AnalysisSessionCreate } from '../../types/analysis.types';
+
 
 interface StartAnalysisModalProps {
     isOpen: boolean;
