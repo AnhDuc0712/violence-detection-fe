@@ -1,0 +1,209 @@
+{
+    "project": "Violence Detection - Admin Portal",
+    "modules": [
+        {
+            "name": "Authentication",
+            "features": [
+                {
+                    "id": "A1",
+                    "name": "Login",
+                    "api": "/admin/login",
+                    "method": "POST"
+                },
+                {
+                    "id": "A2",
+                    "name": "Logout",
+                    "api": "/admin/logout",
+                    "method": "POST"
+                }
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "features": [
+                {
+                    "id": "B1",
+                    "name": "System Overview",
+                    "api": "/admin/dashboard",
+                    "method": "GET"
+                },
+                {
+                    "id": "B2",
+                    "name": "Pending Reviews Count",
+                    "api": "/admin/reviews/count",
+                    "method": "GET"
+                },
+                {
+                    "id": "B3",
+                    "name": "Open Reports Count",
+                    "api": "/admin/reports/count",
+                    "method": "GET"
+                }
+            ]
+        },
+        {
+            "name": "User Management",
+            "features": [
+                {
+                    "id": "C1",
+                    "name": "View Users",
+                    "api": "/admin/users",
+                    "method": "GET"
+                },
+                {
+                    "id": "C2",
+                    "name": "View User Detail",
+                    "api": "/admin/users/{id}",
+                    "method": "GET"
+                },
+                {
+                    "id": "C3",
+                    "name": "Block User",
+                    "api": "/admin/users/{id}/block",
+                    "method": "POST"
+                },
+                {
+                    "id": "C4",
+                    "name": "Change Role",
+                    "api": "/admin/users/{id}/role",
+                    "method": "PUT"
+                },
+                {
+                    "id": "C5",
+                    "name": "Login Attempts",
+                    "api": "/admin/users/{id}/login-attempts",
+                    "method": "GET"
+                },
+                {
+                    "id": "C6",
+                    "name": "Audit Logs",
+                    "api": "/admin/audit-logs",
+                    "method": "GET"
+                }
+            ]
+        },
+        {
+            "name": "ML Review",
+            "features": [
+                {
+                    "id": "E1",
+                    "name": "Pending Queue",
+                    "api": "/admin/review/events",
+                    "method": "GET"
+                },
+                {
+                    "id": "E2",
+                    "name": "Approve/Reject",
+                    "api": "/admin/review/{id}",
+                    "method": "POST"
+                },
+                {
+                    "id": "E3",
+                    "name": "Override Label",
+                    "api": "/admin/review/{id}/override",
+                    "method": "PUT"
+                },
+                {
+                    "id": "E4",
+                    "name": "Add Note",
+                    "api": "/admin/review/{id}/note",
+                    "method": "POST"
+                },
+                {
+                    "id": "E5",
+                    "name": "Dataset Snapshot",
+                    "api": "/admin/dataset/snapshot",
+                    "method": "POST"
+                }
+            ]
+        },
+        {
+            "name": "Video & Analysis",
+            "features": [
+                {
+                    "id": "D1",
+                    "name": "Browse Videos",
+                    "api": "/admin/videos",
+                    "method": "GET"
+                },
+                {
+                    "id": "D2",
+                    "name": "Video Detail",
+                    "api": "/admin/videos/{id}",
+                    "method": "GET"
+                },
+                {
+                    "id": "D3",
+                    "name": "Analysis Sessions",
+                    "api": "/admin/analysis",
+                    "method": "GET"
+                },
+                {
+                    "id": "D4",
+                    "name": "Analysis Events",
+                    "api": "/admin/analysis/{id}/events",
+                    "method": "GET"
+                },
+                {
+                    "id": "D5",
+                    "name": "Cancel Job",
+                    "api": "/admin/analysis/{id}/cancel",
+                    "method": "POST"
+                },
+                {
+                    "id": "D6",
+                    "name": "Rerun Analysis",
+                    "api": "/admin/analysis/{id}/rerun",
+                    "method": "POST"
+                }
+            ]
+        },
+        {
+            "name": "Reports & Moderation",
+            "features": [
+                {
+                    "id": "F1",
+                    "name": "Browse Reports",
+                    "api": "/admin/reports",
+                    "method": "GET"
+                },
+                {
+                    "id": "F2",
+                    "name": "Report Detail",
+                    "api": "/admin/reports/{id}",
+                    "method": "GET"
+                },
+                {
+                    "id": "F3",
+                    "name": "Assign Report",
+                    "api": "/admin/reports/{id}/assign",
+                    "method": "POST"
+                },
+                {
+                    "id": "F4",
+                    "name": "Update Status",
+                    "api": "/admin/reports/{id}/status",
+                    "method": "PUT"
+                },
+                {
+                    "id": "F5",
+                    "name": "Send Message",
+                    "api": "/admin/reports/{id}/message",
+                    "method": "POST"
+                },
+                {
+                    "id": "F6",
+                    "name": "Moderation Action",
+                    "api": "/admin/moderation",
+                    "method": "POST"
+                },
+                {
+                    "id": "F7",
+                    "name": "Close Report",
+                    "api": "/admin/reports/{id}/close",
+                    "method": "POST"
+                }
+            ]
+        }
+    ]
+}
