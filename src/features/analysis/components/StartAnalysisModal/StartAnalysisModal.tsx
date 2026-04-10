@@ -5,7 +5,7 @@ import type { AnalysisSessionCreate } from '../../types/analysis.types';
 interface StartAnalysisModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (spec: AnalysisSessionCreate['pipeline_spec']) => void;
+    onSubmit: (spec: { model_version: string; threshold: number }) => void;
     isLoading: boolean;
 }
 

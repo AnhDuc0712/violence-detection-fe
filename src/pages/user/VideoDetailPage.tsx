@@ -36,7 +36,8 @@ export const VideoDetailPage = () => {
         try {
             const session = await startAnalysisMutation.mutateAsync({
                 video_id: id!,
-                pipeline_spec,
+                model_version: pipeline_spec.model_version,
+                threshold: pipeline_spec.threshold,
             });
             setIsModalOpen(false);
             toast.show('Khởi tạo phân tích thành công!', 'success');
