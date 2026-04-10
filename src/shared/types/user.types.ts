@@ -5,6 +5,7 @@ export interface UserResponse {
     id: string;
     username: string;
     email: string;
+    name?: string
     phone: string;
     role: 'user' | 'admin' | 'super_admin';
     status: 'active' | 'blocked' | 'suspended';

@@ -9,7 +9,7 @@ import { SessionListItem } from '@/features/analysis/components/SessionListItem'
 
 export const DashboardPage = () => {
     const user = useAuthStore(s => s.user);
-    const { data: videos, isLoading: loadingVideos } = useVideos({ skip: 0, limit: 3 });
+    const { data: videos, isLoading: loadingVideos } = useVideos(0);
     const { data: sessions, isLoading: loadingSessions } = useSessions({ skip: 0, limit: 3 });
 
     return (

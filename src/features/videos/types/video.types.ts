@@ -9,5 +9,6 @@ export interface VideoRead {
     size_bytes: number | null;
     duration_sec: number | null;
     created_at: string;
+    video_url?: string;
     // Tuân thủ nghiêm ngặt: KHÔNG có status, deleted_at, filename
 }

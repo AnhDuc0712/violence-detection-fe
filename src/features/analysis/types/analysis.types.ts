@@ -30,5 +30,11 @@ export interface AnalysisEventRead {
 }
 
 export interface AnalysisSessionDetail extends AnalysisSessionRead {
-    events: AnalysisEventRead[]; // Bao gồm toàn bộ timeline trong 1 response
+    id: string
+
+  // 🔥 thêm cái này
+  video_url?: string
+  processed_video_url?: string
+
+  events: any[]
 }
