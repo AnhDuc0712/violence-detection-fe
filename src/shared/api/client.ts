@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
 // Base URL từ cấu hình API Contract
-const BASE_URL = 'http://localhost:8000/api/v1';
+const BASE_URL = 'https://violence-backend-1-57zx.onrender.com';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
