@@ -1,10 +1,13 @@
 // src/features/analysis/types/analysis.types.ts
 export interface AnalysisSessionCreate {
-        video_id: string;
-        model_version?: string;
+    video_id: string; // (hoặc number tùy hệ thống sếp đang dùng)
+    
+    // ✅ GÓI NÓ VÀO PIPELINE_SPEC ĐỂ KHỚP VỚI PAYLOAD
+    pipeline_spec: {
+        model_version: string;
         threshold: number;
-        [key: string]: unknown;
     };
+}
 
 
 export interface AnalysisSessionRead {

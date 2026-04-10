@@ -36,14 +36,18 @@ export const VideoDetailPage = () => {
         try {
             const session = await startAnalysisMutation.mutateAsync({
                 video_id: id!,
-                model_version: pipeline_spec.model_version,
-                threshold: pipeline_spec.threshold,
+                // ✅ GÓI GỌN NÓ VÀO MỘT CÁI OBJECT TÊN LÀ pipeline_spec
+                pipeline_spec: { 
+                    model_version: pipeline_spec.model_version,
+                    threshold: pipeline_spec.threshold
+                }
             });
             setIsModalOpen(false);
             toast.show('Khởi tạo phân tích thành công!', 'success');
             navigate(`/analysis/${session.id}`);
         } catch (error) {
             toast.show('Lỗi khởi tạo phân tích. Video có thể không hợp lệ.', 'error');
+            console.error("Lỗi 400 Backend chửi nè:", error);
         }
     };
 
