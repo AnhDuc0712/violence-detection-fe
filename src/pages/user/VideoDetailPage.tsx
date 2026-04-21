@@ -36,8 +36,8 @@ export const VideoDetailPage = () => {
         try {
             const session = await startAnalysisMutation.mutateAsync({
                 video_id: id!,
-                // ✅ GÓI GỌN NÓ VÀO MỘT CÁI OBJECT TÊN LÀ pipeline_spec
-                pipeline_spec: { 
+                // ✅ FIX CHUẨN: Bọc 2 thuộc tính vào đúng object pipeline_spec mà Backend yêu cầu
+                pipeline_spec: {
                     model_version: pipeline_spec.model_version,
                     threshold: pipeline_spec.threshold
                 }
@@ -47,7 +47,7 @@ export const VideoDetailPage = () => {
             navigate(`/analysis/${session.id}`);
         } catch (error) {
             toast.show('Lỗi khởi tạo phân tích. Video có thể không hợp lệ.', 'error');
-            console.error("Lỗi 400 Backend chửi nè:", error);
+            console.error("Lỗi 400 Payload:", error);
         }
     };
 

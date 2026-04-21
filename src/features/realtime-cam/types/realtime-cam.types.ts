@@ -7,22 +7,26 @@ export type CamStatus =
     | 'error'
     | 'disconnected';
 
-export interface DetectionEvent {
+export type DetectionEvent = {
     id: string;
     event_type: string;
     score: number;
     timestamp: number;
-    frame_data_url?: string;
-    bounding_box?: { x: number; y: number; width: number; height: number; };
-}
+    message?: string;
+};
+
+export type RealtimePerson = {
+    keypoints: [number, number, number][];
+    bbox: [number, number, number, number] | null;
+};
 
 export interface AnalysisFrameResponse {
-    events: DetectionEvent[];
-    processing_time_ms?: number;
+    people: RealtimePerson[];
+    alerts: DetectionEvent[];
+    latency_ms: number;
 }
 
 export interface AnalysisFrameRequest {
-    frame_base64: string;
-    session_id?: string;
+    image: string;
     timestamp: number;
 }

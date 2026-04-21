@@ -30,11 +30,16 @@ export const useCamera = () => {
         }
     }, []);
 
-    const stopCamera = useCallback(() => {
-        streamRef.current?.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-        setStatus('idle');
-    }, []);
+    const stopCamera = useCallback((videoEl?: HTMLVideoElement) => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+
+    if (videoEl) {
+        videoEl.srcObject = null;
+    }
+
+    setStatus('idle');
+}, []);
 
     return { status, setStatus, errorMsg, streamRef, startCamera, stopCamera };
 };

@@ -18,9 +18,13 @@ export const CamControls = ({ status, onStart, onStop, onStartAnalysis, onStopAn
             <Button variant="secondary" onClick={onStop}>Tắt Camera</Button>
         )}
 
-        {status === 'active' && (
-            <Button variant="danger" onClick={onStartAnalysis} className="animate-pulse">
-                Bắt đầu phân tích
+        {(status === 'active' || status === 'disconnected') && (
+            <Button
+                variant={status === 'disconnected' ? 'secondary' : 'danger'}
+                onClick={onStartAnalysis}
+                className={status === 'active' ? 'animate-pulse' : ''}
+            >
+                {status === 'disconnected' ? 'Kết nối lại phân tích' : 'Bắt đầu phân tích'}
             </Button>
         )}
 
