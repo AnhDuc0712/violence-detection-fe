@@ -3,7 +3,10 @@ import { realtimeCamApi } from '../api/realtime-cam.api';
 import { useFrameCapture } from './useFrameCapture';
 import type { DetectionEvent, CamStatus, RealtimePerson } from '../types/realtime-cam.types';
 
-// ... (Giữ nguyên function useRealtimeAnalysisLegacy nếu sếp vẫn cần lưu trữ) ...
+// 🔧 Hằng số cấu hình (dễ điều chỉnh)
+const FRAME_SKIP_INTERVAL = 5; // gửi đi phân tích mỗi 5 frame (~1.5s nếu capture 30fps + interval 300ms)
+const DEFAULT_CAPTURE_INTERVAL_MS = 300;
+const RETRY_DELAY_MS = 120;
 
 export const useRealtimeAnalysis = (
     videoRef: RefObject<HTMLVideoElement>,
@@ -11,7 +14,7 @@ export const useRealtimeAnalysis = (
     setCamStatus: (status: CamStatus) => void,
     options: { intervalMs?: number; onAlerts?: (alerts: DetectionEvent[]) => void } = {}
 ) => {
-    const { intervalMs = 300, onAlerts } = options;
+    const { intervalMs = DEFAULT_CAPTURE_INTERVAL_MS, onAlerts } = options;
     const { captureFrame } = useFrameCapture();
 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -22,6 +25,7 @@ export const useRealtimeAnalysis = (
     const sendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const awaitingResponseRef = useRef(false);
     const manualStopRef = useRef(false);
+    const frameCounterRef = useRef(0);
 
     const clearLoop = useCallback(() => {
         if (sendTimeoutRef.current) {
@@ -45,21 +49,30 @@ export const useRealtimeAnalysis = (
             }
 
             if (!videoRef.current) {
-                scheduleNextFrame(120);
+                scheduleNextFrame(RETRY_DELAY_MS);
                 return;
             }
 
             const frame = captureFrame(videoRef.current);
             if (!frame) {
-                scheduleNextFrame(120);
+                scheduleNextFrame(RETRY_DELAY_MS);
                 return;
             }
 
+            // ✅ Frame skip: chỉ gửi mỗi 5 frame (giảm tải AI)
+            frameCounterRef.current++;
+            if (frameCounterRef.current % FRAME_SKIP_INTERVAL !== 0) {
+                scheduleNextFrame(intervalMs);
+                return;
+            }
+
+            console.log(`📤 [WS] Sending frame #${frameCounterRef.current} (skip ratio ${FRAME_SKIP_INTERVAL}:1)`);
             awaitingResponseRef.current = true;
 
             try {
                 ws.send(JSON.stringify({ image: frame, timestamp: Date.now() }));
-            } catch {
+            } catch (err) {
+                console.error("❌ [WS] Send error:", err);
                 awaitingResponseRef.current = false;
                 ws.close();
             }
@@ -72,27 +85,18 @@ export const useRealtimeAnalysis = (
         }
 
         manualStopRef.current = false;
+        frameCounterRef.current = 0;
         setPeople([]);
         setLatencyMs(0);
 
-        // 🔥 FIX QUAN TRỌNG: Lấy URL và khử trùng (Sanitize) ngay tại đây
-        let rawUrl = realtimeCamApi.getWebSocketUrl();
-        // Xóa khoảng trắng thừa 2 đầu
-        let safeUrl = rawUrl.trim(); 
-        // Khắc phục lỗi double scheme nếu API_BASE_URL bị lỗi " https://"
-        safeUrl = safeUrl.replace('ws:// https://', 'wss://').replace('ws:// http://', 'ws://');
+        const wsUrl = realtimeCamApi.getWebSocketUrl();
+        console.log("🔗 [WS] Connecting to:", wsUrl);
 
-        // 🚀 ĐỂ TEST LOCAL BƯỚC 1, SẾP HÃY BỎ COMMENT DÒNG DƯỚI ĐÂY:
-        safeUrl = "ws://127.0.0.1:8000/api/v1/realtime/ws/realtime";
-
-        console.log("🔗 [WS] Đang thử kết nối tới URL SẠCH:", safeUrl);
-
-        const ws = new WebSocket(safeUrl);
+        const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
             if (wsRef.current !== ws) return;
-
-            console.log("✅ [WS] CONNECTED SUCCESS!");
+            console.log("✅ [WS] Connected successfully!");
             setIsAnalyzing(true);
             setCamStatus('analyzing');
             scheduleNextFrame(0);
@@ -100,8 +104,7 @@ export const useRealtimeAnalysis = (
 
         ws.onmessage = (event) => {
             if (wsRef.current !== ws) return;
-
-            awaitingResponseRef.current = false; // Mở khóa cho frame tiếp theo
+            awaitingResponseRef.current = false;
 
             try {
                 const data = realtimeCamApi.normalizeResponse(JSON.parse(event.data));
@@ -112,7 +115,7 @@ export const useRealtimeAnalysis = (
                     onAlerts?.(data.alerts);
                 }
             } catch (err) {
-                console.error("❌ [WS] Lỗi parse data:", err);
+                console.error("❌ [WS] Error parsing data:", err);
                 setPeople([]);
                 setLatencyMs(0);
             }
@@ -121,12 +124,11 @@ export const useRealtimeAnalysis = (
         };
 
         ws.onclose = () => {
-            console.log("🔴 [WS] CLOSED");
+            console.log("🔴 [WS] Connection closed");
             clearLoop();
             if (wsRef.current === ws) {
                 wsRef.current = null;
             }
-
             setIsAnalyzing(false);
             setPeople([]);
             setLatencyMs(0);
@@ -135,12 +137,11 @@ export const useRealtimeAnalysis = (
                 manualStopRef.current = false;
                 return;
             }
-
             setCamStatus('disconnected');
         };
 
         ws.onerror = (err) => {
-            console.error("⚠️ [WS] LỖI MẠNG (Check lại URL hoặc Vercel chặn WS):", err);
+            console.error("⚠️ [WS] Network error:", err);
             if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
                 ws.close();
             }
@@ -164,6 +165,7 @@ export const useRealtimeAnalysis = (
         setPeople([]);
         setLatencyMs(0);
         setCamStatus('active');
+        frameCounterRef.current = 0;
     }, [clearLoop, setCamStatus]);
 
     useEffect(() => {
@@ -177,10 +179,8 @@ export const useRealtimeAnalysis = (
         return () => {
             manualStopRef.current = true;
             clearLoop();
-
             const ws = wsRef.current;
             wsRef.current = null;
-
             if (ws) {
                 ws.onopen = null;
                 ws.onmessage = null;

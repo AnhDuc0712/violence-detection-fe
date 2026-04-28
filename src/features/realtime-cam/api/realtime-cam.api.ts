@@ -1,7 +1,7 @@
 // src/features/realtime-cam/api/realtime-cam.api.ts
 import type { AnalysisFrameResponse, DetectionEvent, RealtimePerson } from '../types/realtime-cam.types';
 
-const REALTIME_PATH = '/api/v1/realtime/ws/realtime';
+const REALTIME_PATH = '/api/v1/ws/realtime';
 
 const toSafeNumber = (value: unknown, fallback = 0) => {
     const next = Number(value);
@@ -25,7 +25,7 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
 
             const keypoints = rawKeypoints
                 .map((point) => {
-                    if (!Array.isArray(point) || point.length < 2) {
+                    if (!Array.isArray(point) || point.length <3 ) {
                         return null;
                     }
 
@@ -79,7 +79,7 @@ const normalizeAlerts = (value: unknown): DetectionEvent[] => {
 const buildRealtimePath = (pathname: string) => {
     const cleanPath = pathname.replace(/\/$/, '');
     if (cleanPath.endsWith('/api/v1')) {
-        return `${cleanPath}/realtime/ws/realtime`;
+        return `${cleanPath}/ws/realtime`;
     }
     return `${cleanPath}${REALTIME_PATH}`;
 };
@@ -102,7 +102,7 @@ export const realtimeCamApi = {
 
     normalizeResponse: (payload: unknown): AnalysisFrameResponse => {
         if (!payload || typeof payload !== 'object') {
-            return { people: [], alerts: [], latency_ms: 0 };
+            
         }
 
         const record = payload as Record<string, unknown>;

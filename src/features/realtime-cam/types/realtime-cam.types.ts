@@ -16,8 +16,12 @@ export type DetectionEvent = {
 };
 
 export type RealtimePerson = {
+    track_id: number;                                    // ✅ thêm
+    bbox: [number, number, number, number];
     keypoints: [number, number, number][];
-    bbox: [number, number, number, number] | null;
+    violence_prob: number;                              // ✅ thêm
+    label: string;                                      // ✅ thêm
+    identity: string;  
 };
 
 export interface AnalysisFrameResponse {
