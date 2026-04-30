@@ -1,4 +1,3 @@
-// src/features/realtime-cam/api/realtime-cam.api.ts
 import type { AnalysisFrameResponse, DetectionEvent, RealtimePerson } from '../types/realtime-cam.types';
 
 const REALTIME_PATH = '/api/v1/ws/realtime';
@@ -25,14 +24,14 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
 
             const keypoints = rawKeypoints
                 .map((point) => {
-                    if (!Array.isArray(point) || point.length <3 ) {
+                    if (!Array.isArray(point) || point.length < 2) {
                         return null;
                     }
 
                     return [
                         toSafeNumber(point[0]),
                         toSafeNumber(point[1]),
-                        Math.max(0, Math.min(1, toSafeNumber(point[2], 0))),
+                        Math.max(0, Math.min(1, toSafeNumber(point[2], 1))),
                     ] as [number, number, number];
                 })
                 .filter((point): point is [number, number, number] => point !== null);
@@ -42,7 +41,35 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                     ? (rawBbox.map((point) => toSafeNumber(point)) as [number, number, number, number])
                     : null;
 
-            return { keypoints, bbox };
+            if (!bbox) {
+                return null;
+            }
+
+            const violenceProb = Math.max(
+                0,
+                Math.min(
+                    1,
+                    toSafeNumber(
+                        record.violence_prob ?? record.score ?? record.xgb_prob ?? record.raw_prob,
+                        0,
+                    ),
+                ),
+            );
+
+            return {
+                track_id: Math.max(0, Math.trunc(toSafeNumber(record.track_id, 0))),
+                bbox,
+                keypoints,
+                violence_prob: violenceProb,
+                label: String(record.label ?? 'unknown'),
+                identity: String(record.identity ?? 'Unknown'),
+                identity_source: String(record.identity_source ?? 'unknown'),
+                face_confidence: Math.max(0, Math.min(1, toSafeNumber(record.face_confidence ?? record.face_score, 0))),
+                body_confidence: Math.max(0, Math.min(1, toSafeNumber(record.body_confidence ?? 0, 0))),
+                violence_state: Boolean(record.violence_state ?? record.is_violent ?? (String(record.label ?? '') === 'violence')),
+                det_conf: Math.max(0, Math.min(1, toSafeNumber(record.det_conf, 0))),
+                status: String(record.status ?? 'unknown'),
+            } satisfies RealtimePerson;
         })
         .filter((person): person is RealtimePerson => person !== null);
 };
@@ -53,27 +80,27 @@ const normalizeAlerts = (value: unknown): DetectionEvent[] => {
     }
 
     return value.reduce<DetectionEvent[]>((acc, alert, index) => {
-            if (!alert || typeof alert !== 'object') {
-                return acc;
-            }
-
-            const record = alert as Record<string, unknown>;
-            const eventType = String(record.event_type ?? record.label ?? record.type ?? 'warning');
-            const timestamp = Math.max(0, Math.trunc(toSafeNumber(record.timestamp, Date.now())));
-            const nextAlert: DetectionEvent = {
-                id: String(record.id ?? `${eventType}-${timestamp}-${index}`),
-                event_type: eventType,
-                score: Math.max(0, Math.min(1, toSafeNumber(record.score ?? record.confidence, 0))),
-                timestamp,
-            };
-
-            if (typeof record.message === 'string') {
-                nextAlert.message = record.message;
-            }
-
-            acc.push(nextAlert);
+        if (!alert || typeof alert !== 'object') {
             return acc;
-        }, []);
+        }
+
+        const record = alert as Record<string, unknown>;
+        const eventType = String(record.event_type ?? record.label ?? record.type ?? 'warning');
+        const timestamp = Math.max(0, Math.trunc(toSafeNumber(record.timestamp, Date.now())));
+        const nextAlert: DetectionEvent = {
+            id: String(record.id ?? `${eventType}-${timestamp}-${index}`),
+            event_type: eventType,
+            score: Math.max(0, Math.min(1, toSafeNumber(record.score ?? record.confidence, 0))),
+            timestamp,
+        };
+
+        if (typeof record.message === 'string') {
+            nextAlert.message = record.message;
+        }
+
+        acc.push(nextAlert);
+        return acc;
+    }, []);
 };
 
 const buildRealtimePath = (pathname: string) => {
@@ -101,36 +128,14 @@ export const realtimeCamApi = {
     },
 
     normalizeResponse: (payload: unknown): AnalysisFrameResponse => {
-        if (!payload || typeof payload !== 'object') {
-            
-        }
-
-        const record = payload as Record<string, unknown>;
+        const record = payload && typeof payload === 'object'
+            ? (payload as Record<string, unknown>)
+            : {};
 
         return {
             people: normalizePeople(record.people),
             alerts: normalizeAlerts(record.alerts ?? record.events),
             latency_ms: Math.max(0, Math.trunc(toSafeNumber(record.latency_ms, 0))),
         };
-    },
-
-    analyzeFrame: async (_payload: { image: string; timestamp: number }): Promise<AnalysisFrameResponse> => {
-        // TODO: uncomment khi BE sẵn sàng
-        // return apiClient.post<AnalysisFrameResponse>('/realtime/analyze-frame', _payload).then(r => r.data);
-
-        // Mock response trong lúc chờ BE (Giả lập delay mạng 200ms)
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { people: [], alerts: [], latency_ms: 200 };
-    },
-
-    startSession: async (): Promise<{ session_id: string } | null> => {
-        // TODO: uncomment khi BE sẵn sàng
-        // return apiClient.post<{ session_id: string }>('/realtime/sessions').then(r => r.data);
-        return null;
-    },
-
-    endSession: async (_sessionId: string): Promise<void> => {
-        // TODO: uncomment khi BE sẵn sàng
-        // await apiClient.delete(`/realtime/sessions/${_sessionId}`);
     },
 };

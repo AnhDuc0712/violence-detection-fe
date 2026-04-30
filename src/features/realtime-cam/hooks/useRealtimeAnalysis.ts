@@ -3,8 +3,7 @@ import { realtimeCamApi } from '../api/realtime-cam.api';
 import { useFrameCapture } from './useFrameCapture';
 import type { DetectionEvent, CamStatus, RealtimePerson } from '../types/realtime-cam.types';
 
-// 🔧 Hằng số cấu hình (dễ điều chỉnh)
-const FRAME_SKIP_INTERVAL = 5; // gửi đi phân tích mỗi 5 frame (~1.5s nếu capture 30fps + interval 300ms)
+const FRAME_SKIP_INTERVAL = 5;
 const DEFAULT_CAPTURE_INTERVAL_MS = 300;
 const RETRY_DELAY_MS = 120;
 
@@ -12,15 +11,17 @@ export const useRealtimeAnalysis = (
     videoRef: RefObject<HTMLVideoElement>,
     camStatus: CamStatus,
     setCamStatus: (status: CamStatus) => void,
-    options: { intervalMs?: number; onAlerts?: (alerts: DetectionEvent[]) => void } = {}
+    options: { intervalMs?: number; onAlerts?: (alerts: DetectionEvent[]) => void } = {},
 ) => {
     const { intervalMs = DEFAULT_CAPTURE_INTERVAL_MS, onAlerts } = options;
     const { captureFrame } = useFrameCapture();
 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [people, setPeople] = useState<RealtimePerson[]>([]);
+    const [peopleCount, setPeopleCount] = useState(0);
     const [latencyMs, setLatencyMs] = useState(0);
+    const [isConnected, setIsConnected] = useState(false);
 
+    const peopleRef = useRef<RealtimePerson[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
     const sendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const awaitingResponseRef = useRef(false);
@@ -59,20 +60,17 @@ export const useRealtimeAnalysis = (
                 return;
             }
 
-            // ✅ Frame skip: chỉ gửi mỗi 5 frame (giảm tải AI)
-            frameCounterRef.current++;
+            frameCounterRef.current += 1;
             if (frameCounterRef.current % FRAME_SKIP_INTERVAL !== 0) {
                 scheduleNextFrame(intervalMs);
                 return;
             }
 
-            console.log(`📤 [WS] Sending frame #${frameCounterRef.current} (skip ratio ${FRAME_SKIP_INTERVAL}:1)`);
             awaitingResponseRef.current = true;
-
             try {
                 ws.send(JSON.stringify({ image: frame, timestamp: Date.now() }));
             } catch (err) {
-                console.error("❌ [WS] Send error:", err);
+                console.error('[WS] Send error:', err);
                 awaitingResponseRef.current = false;
                 ws.close();
             }
@@ -86,37 +84,42 @@ export const useRealtimeAnalysis = (
 
         manualStopRef.current = false;
         frameCounterRef.current = 0;
-        setPeople([]);
+        peopleRef.current = [];
+        setPeopleCount(0);
         setLatencyMs(0);
 
-        const wsUrl = realtimeCamApi.getWebSocketUrl();
-        console.log("🔗 [WS] Connecting to:", wsUrl);
-
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(realtimeCamApi.getWebSocketUrl());
 
         ws.onopen = () => {
-            if (wsRef.current !== ws) return;
-            console.log("✅ [WS] Connected successfully!");
+            if (wsRef.current !== ws) {
+                return;
+            }
             setIsAnalyzing(true);
+            setIsConnected(true);
             setCamStatus('analyzing');
             scheduleNextFrame(0);
         };
 
         ws.onmessage = (event) => {
-            if (wsRef.current !== ws) return;
+            if (wsRef.current !== ws) {
+                return;
+            }
             awaitingResponseRef.current = false;
 
             try {
                 const data = realtimeCamApi.normalizeResponse(JSON.parse(event.data));
-                setPeople(data.people);
+                peopleRef.current = data.people;
+                setPeopleCount(data.people.length);
                 setLatencyMs(data.latency_ms);
+                setIsConnected(true);
 
                 if (data.alerts.length > 0) {
                     onAlerts?.(data.alerts);
                 }
             } catch (err) {
-                console.error("❌ [WS] Error parsing data:", err);
-                setPeople([]);
+                console.error('[WS] Error parsing data:', err);
+                peopleRef.current = [];
+                setPeopleCount(0);
                 setLatencyMs(0);
             }
 
@@ -124,13 +127,15 @@ export const useRealtimeAnalysis = (
         };
 
         ws.onclose = () => {
-            console.log("🔴 [WS] Connection closed");
             clearLoop();
             if (wsRef.current === ws) {
                 wsRef.current = null;
             }
+
             setIsAnalyzing(false);
-            setPeople([]);
+            setIsConnected(false);
+            peopleRef.current = [];
+            setPeopleCount(0);
             setLatencyMs(0);
 
             if (manualStopRef.current) {
@@ -141,7 +146,8 @@ export const useRealtimeAnalysis = (
         };
 
         ws.onerror = (err) => {
-            console.error("⚠️ [WS] Network error:", err);
+            console.error('[WS] Network error:', err);
+            setIsConnected(false);
             if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
                 ws.close();
             }
@@ -162,7 +168,9 @@ export const useRealtimeAnalysis = (
         }
 
         setIsAnalyzing(false);
-        setPeople([]);
+        setIsConnected(false);
+        peopleRef.current = [];
+        setPeopleCount(0);
         setLatencyMs(0);
         setCamStatus('active');
         frameCounterRef.current = 0;
@@ -170,8 +178,10 @@ export const useRealtimeAnalysis = (
 
     useEffect(() => {
         if (camStatus === 'idle' || camStatus === 'error') {
-            setPeople([]);
+            peopleRef.current = [];
+            setPeopleCount(0);
             setLatencyMs(0);
+            setIsConnected(false);
         }
     }, [camStatus]);
 
@@ -191,5 +201,13 @@ export const useRealtimeAnalysis = (
         };
     }, [clearLoop]);
 
-    return { isAnalyzing, people, latencyMs, startAnalysis, stopAnalysis };
+    return {
+        isAnalyzing,
+        peopleRef,
+        peopleCount,
+        latencyMs,
+        isConnected,
+        startAnalysis,
+        stopAnalysis,
+    };
 };

@@ -1,4 +1,3 @@
-// src/features/realtime-cam/types/realtime-cam.types.ts
 export type CamStatus =
     | 'idle'
     | 'requesting'
@@ -16,12 +15,18 @@ export type DetectionEvent = {
 };
 
 export type RealtimePerson = {
-    track_id: number;                                    // ✅ thêm
+    track_id: number;
     bbox: [number, number, number, number];
     keypoints: [number, number, number][];
-    violence_prob: number;                              // ✅ thêm
-    label: string;                                      // ✅ thêm
-    identity: string;  
+    violence_prob: number;
+    label: string;
+    identity: string;
+    identity_source: string;
+    face_confidence: number;
+    body_confidence: number;
+    violence_state: boolean;
+    det_conf: number;
+    status: string;
 };
 
 export interface AnalysisFrameResponse {
