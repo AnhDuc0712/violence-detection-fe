@@ -96,15 +96,24 @@ export const CamPreview = forwardRef<HTMLVideoElement, CamPreviewProps>(
                     return;
                 }
 
-                const scaleX = canvasEl.width / videoEl.videoWidth;
-                const scaleY = canvasEl.height / videoEl.videoHeight;
+                const videoWidth = videoEl.videoWidth;
+                const videoHeight = videoEl.videoHeight;
+                const canvasWidth = canvasEl.width;
+                const canvasHeight = canvasEl.height;
+                const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+                const renderedWidth = videoWidth * scale;
+                const renderedHeight = videoHeight * scale;
+                const cropX = Math.max(0, (renderedWidth - canvasWidth) / (2 * scale));
+                const cropY = Math.max(0, (renderedHeight - canvasHeight) / (2 * scale));
+
                 const config: OverlayConfig = {
-                    scaleX,
-                    scaleY,
+                    scale,
                     offsetX: 0,
                     offsetY: 0,
                     mirrorX: true,
-                    canvasWidth: canvasEl.width,
+                    canvasWidth: canvasWidth,
+                    sourceCropX: cropX,
+                    sourceCropY: cropY,
                 };
 
                 const people = peopleRef.current;

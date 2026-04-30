@@ -20,6 +20,7 @@ export const useRealtimeAnalysis = (
     const [peopleCount, setPeopleCount] = useState(0);
     const [latencyMs, setLatencyMs] = useState(0);
     const [isConnected, setIsConnected] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
     const peopleRef = useRef<RealtimePerson[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
@@ -87,6 +88,7 @@ export const useRealtimeAnalysis = (
         peopleRef.current = [];
         setPeopleCount(0);
         setLatencyMs(0);
+        setSessionId(null);
 
         const ws = new WebSocket(realtimeCamApi.getWebSocketUrl());
 
@@ -112,6 +114,21 @@ export const useRealtimeAnalysis = (
                 setPeopleCount(data.people.length);
                 setLatencyMs(data.latency_ms);
                 setIsConnected(true);
+                setSessionId(data.session_id ?? null);
+
+                if (data.people.length > 0) {
+                    console.debug(
+                        '[realtime-v2] frame',
+                        data.people.map((person) => ({
+                            track_id: person.track_id,
+                            identity: person.identity,
+                            raw_prob: person.raw_prob,
+                            ema_prob: person.violence_prob,
+                            hysteresis_state: person.label,
+                            violence_state: person.violence_state,
+                        })),
+                    );
+                }
 
                 if (data.alerts.length > 0) {
                     onAlerts?.(data.alerts);
@@ -137,6 +154,7 @@ export const useRealtimeAnalysis = (
             peopleRef.current = [];
             setPeopleCount(0);
             setLatencyMs(0);
+            setSessionId(null);
 
             if (manualStopRef.current) {
                 manualStopRef.current = false;
@@ -172,6 +190,7 @@ export const useRealtimeAnalysis = (
         peopleRef.current = [];
         setPeopleCount(0);
         setLatencyMs(0);
+        setSessionId(null);
         setCamStatus('active');
         frameCounterRef.current = 0;
     }, [clearLoop, setCamStatus]);
@@ -182,6 +201,7 @@ export const useRealtimeAnalysis = (
             setPeopleCount(0);
             setLatencyMs(0);
             setIsConnected(false);
+            setSessionId(null);
         }
     }, [camStatus]);
 
@@ -207,6 +227,8 @@ export const useRealtimeAnalysis = (
         peopleCount,
         latencyMs,
         isConnected,
+        sessionId,
+        wsActiveCount: isConnected ? 1 : 0,
         startAnalysis,
         stopAnalysis,
     };

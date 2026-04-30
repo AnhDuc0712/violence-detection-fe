@@ -14,12 +14,13 @@ const SKELETON: Array<[number, number]> = [
 const MIN_CONF = 0.35;
 
 export interface OverlayConfig {
-    scaleX: number;
-    scaleY: number;
+    scale: number;
     offsetX: number;
     offsetY: number;
     mirrorX: boolean;
     canvasWidth: number;
+    sourceCropX: number;
+    sourceCropY: number;
 }
 
 export const mapCanvasPoint = (
@@ -27,8 +28,8 @@ export const mapCanvasPoint = (
     y: number,
     config: OverlayConfig,
 ): [number, number] => {
-    const mappedX = (x * config.scaleX) + config.offsetX;
-    const mappedY = (y * config.scaleY) + config.offsetY;
+    const mappedX = ((x - config.sourceCropX) * config.scale) + config.offsetX;
+    const mappedY = ((y - config.sourceCropY) * config.scale) + config.offsetY;
     if (!config.mirrorX) {
         return [mappedX, mappedY];
     }

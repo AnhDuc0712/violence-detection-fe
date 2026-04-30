@@ -1,6 +1,6 @@
 import type { AnalysisFrameResponse, DetectionEvent, RealtimePerson } from '../types/realtime-cam.types';
 
-const REALTIME_PATH = '/api/v1/ws/realtime';
+const REALTIME_PATH = '/api/v1/ws/realtime-v2';
 
 const toSafeNumber = (value: unknown, fallback = 0) => {
     const next = Number(value);
@@ -20,10 +20,11 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
 
             const record = person as Record<string, unknown>;
             const rawKeypoints = Array.isArray(record.keypoints) ? record.keypoints : [];
+            const rawKeypointConf = Array.isArray(record.keypoint_conf) ? record.keypoint_conf : [];
             const rawBbox = Array.isArray(record.bbox) ? record.bbox : null;
 
             const keypoints = rawKeypoints
-                .map((point) => {
+                .map((point, index) => {
                     if (!Array.isArray(point) || point.length < 2) {
                         return null;
                     }
@@ -31,7 +32,16 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                     return [
                         toSafeNumber(point[0]),
                         toSafeNumber(point[1]),
-                        Math.max(0, Math.min(1, toSafeNumber(point[2], 1))),
+                        Math.max(
+                            0,
+                            Math.min(
+                                1,
+                                toSafeNumber(
+                                    point[2],
+                                    Array.isArray(rawKeypointConf) ? rawKeypointConf[index] : 1,
+                                ),
+                            ),
+                        ),
                     ] as [number, number, number];
                 })
                 .filter((point): point is [number, number, number] => point !== null);
@@ -61,6 +71,9 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 bbox,
                 keypoints,
                 violence_prob: violenceProb,
+                raw_prob: Math.max(0, Math.min(1, toSafeNumber(record.raw_prob, violenceProb))),
+                bilstm_prob: Math.max(0, Math.min(1, toSafeNumber(record.bilstm_prob, 0))),
+                xgb_prob: Math.max(0, Math.min(1, toSafeNumber(record.xgb_prob, 0))),
                 label: String(record.label ?? 'unknown'),
                 identity: String(record.identity ?? 'Unknown'),
                 identity_source: String(record.identity_source ?? 'unknown'),
@@ -106,7 +119,7 @@ const normalizeAlerts = (value: unknown): DetectionEvent[] => {
 const buildRealtimePath = (pathname: string) => {
     const cleanPath = pathname.replace(/\/$/, '');
     if (cleanPath.endsWith('/api/v1')) {
-        return `${cleanPath}/ws/realtime`;
+        return `${cleanPath}/ws/realtime-v2`;
     }
     return `${cleanPath}${REALTIME_PATH}`;
 };
@@ -133,6 +146,7 @@ export const realtimeCamApi = {
             : {};
 
         return {
+            session_id: typeof record.session_id === 'string' ? record.session_id : undefined,
             people: normalizePeople(record.people),
             alerts: normalizeAlerts(record.alerts ?? record.events),
             latency_ms: Math.max(0, Math.trunc(toSafeNumber(record.latency_ms, 0))),

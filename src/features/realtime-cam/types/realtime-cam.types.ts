@@ -19,6 +19,9 @@ export type RealtimePerson = {
     bbox: [number, number, number, number];
     keypoints: [number, number, number][];
     violence_prob: number;
+    raw_prob: number;
+    bilstm_prob: number;
+    xgb_prob: number;
     label: string;
     identity: string;
     identity_source: string;
@@ -30,6 +33,7 @@ export type RealtimePerson = {
 };
 
 export interface AnalysisFrameResponse {
+    session_id?: string;
     people: RealtimePerson[];
     alerts: DetectionEvent[];
     latency_ms: number;

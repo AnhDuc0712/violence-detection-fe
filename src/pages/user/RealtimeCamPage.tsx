@@ -15,6 +15,8 @@ export const RealtimeCamPage = () => {
         peopleCount,
         latencyMs,
         isConnected,
+        sessionId,
+        wsActiveCount,
         startAnalysis,
         stopAnalysis,
     } = useRealtimeAnalysis(
@@ -65,7 +67,7 @@ export const RealtimeCamPage = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                 <div className="bg-white border rounded-lg p-4 shadow-sm">
                     <div className="text-sm text-gray-500 mb-1">Doi tuong dang thay</div>
                     <div className="text-2xl font-bold text-gray-800">{peopleCount}</div>
@@ -79,6 +81,14 @@ export const RealtimeCamPage = () => {
                     <div className={`text-2xl font-bold ${isConnected ? 'text-green-600' : 'text-orange-600'}`}>
                         {isConnected ? 'Connected' : 'Disconnected'}
                     </div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Session ID</div>
+                    <div className="text-sm font-mono text-gray-800 break-all">{sessionId ?? '--'}</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Active WS</div>
+                    <div className="text-2xl font-bold text-gray-800">{wsActiveCount}</div>
                 </div>
             </div>
 
