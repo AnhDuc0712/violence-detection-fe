@@ -117,17 +117,29 @@ export const useRealtimeAnalysis = (
                 setSessionId(data.session_id ?? null);
 
                 if (data.people.length > 0) {
+                    // Task #14: Performance logging
                     console.debug(
                         '[realtime-v2] frame',
                         data.people.map((person) => ({
                             track_id: person.track_id,
                             identity: person.identity,
-                            raw_prob: person.raw_prob,
-                            ema_prob: person.violence_prob,
-                            hysteresis_state: person.label,
-                            violence_state: person.violence_state,
+                            identity_locked: person.identity_locked,
+                            votes: person.identity_votes_count,
+                            raw_prob: person.raw_prob.toFixed(3),
+                            bilstm_prob: person.bilstm_prob.toFixed(3),
+                            xgb_prob: person.xgb_prob.toFixed(3),
+                            ema_prob: person.violence_prob.toFixed(3),
+                            state: person.label,
+                            violence: person.violence_state,
+                            interaction: person.interaction_score.toFixed(3),
+                            status: person.status,
                         })),
                     );
+                    
+                    // Log latency
+                    if (frameCounterRef.current % 30 === 0) {  // Every ~30 frames
+                        console.debug(`[PERF] E2E latency: ${data.latency_ms}ms, people: ${data.people.length}`);
+                    }
                 }
 
                 if (data.alerts.length > 0) {

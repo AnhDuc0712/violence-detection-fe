@@ -30,10 +30,17 @@ const drawBoundingBoxes = (
         ctx.fillRect(left, top, width, height);
         ctx.strokeRect(left, top, width, height);
 
+        // Task #10: Improved overlay debug info
         const lines = [
             `Track #${person.track_id}`,
             person.identity || 'Unknown',
             `Violence: ${person.violence_prob.toFixed(2)}${person.violence_state ? ' ALERT' : ''}`,
+            // Debug info: show interaction score if multi-person
+            ...(person.interaction_score > 0.1 ? [`Interaction: ${person.interaction_score.toFixed(2)}`] : []),
+            // Debug info: show identity lock state
+            ...(person.identity_locked ? [`[LOCKED]`] : []),
+            // Debug info: show identity votes
+            ...(person.identity_votes_count > 0 ? [`Votes: ${person.identity_votes_count}/5`] : []),
         ];
 
         ctx.font = '12px monospace';

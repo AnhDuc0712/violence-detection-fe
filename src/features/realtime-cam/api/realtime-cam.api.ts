@@ -82,6 +82,10 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 violence_state: Boolean(record.violence_state ?? record.is_violent ?? (String(record.label ?? '') === 'violence')),
                 det_conf: Math.max(0, Math.min(1, toSafeNumber(record.det_conf, 0))),
                 status: String(record.status ?? 'unknown'),
+                // DEBUG FIELDS (Task #6, #10)
+                identity_locked: Boolean(record.identity_locked ?? false),
+                identity_votes_count: Math.max(0, Math.trunc(toSafeNumber(record.identity_votes_count, 0))),
+                interaction_score: Math.max(0, Math.min(1, toSafeNumber(record.interaction_score, 0))),
             } satisfies RealtimePerson;
         })
         .filter((person): person is RealtimePerson => person !== null);

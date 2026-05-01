@@ -30,6 +30,10 @@ export type RealtimePerson = {
     violence_state: boolean;
     det_conf: number;
     status: string;
+    // DEBUG FIELDS (Task #6, #10)
+    identity_locked: boolean;
+    identity_votes_count: number;
+    interaction_score: number;
 };
 
 export interface AnalysisFrameResponse {
