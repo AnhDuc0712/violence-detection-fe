@@ -147,13 +147,16 @@ export const useRealtimeAnalysis = (
                             identity: person.identity,
                             identity_locked: person.identity_locked,
                             votes: person.identity_votes_count,
-                            raw_prob: person.raw_prob.toFixed(3),
-                            bilstm_prob: person.bilstm_prob.toFixed(3),
-                            xgb_prob: person.xgb_prob.toFixed(3),
-                            ema_prob: person.violence_prob.toFixed(3),
+                            raw_prob: person.raw_prob?.toFixed(3) ?? '0.000',
+                            bilstm_prob: person.bilstm_prob?.toFixed(3) ?? '0.000',
+                            xgb_prob: person.xgb_prob?.toFixed(3) ?? '0.000',
+                            ema_prob: person.violence_prob?.toFixed(3) ?? '0.000',
+
                             state: person.label,
                             violence: person.violence_state,
-                            interaction: person.interaction_score.toFixed(3),
+
+                            interaction: person.interaction_score?.toFixed(3) ?? '0.000',
+
                             status: person.status,
                         })),
                     );
