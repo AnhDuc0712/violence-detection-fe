@@ -3,9 +3,10 @@ import { realtimeCamApi } from '../api/realtime-cam.api';
 import { useFrameCapture } from './useFrameCapture';
 import type { DetectionEvent, CamStatus, RealtimePerson } from '../types/realtime-cam.types';
 
-const FRAME_SKIP_INTERVAL = 5;
+const FRAME_SKIP_INTERVAL = 2;
 const DEFAULT_CAPTURE_INTERVAL_MS = 300;
 const RETRY_DELAY_MS = 120;
+const MAX_BUFFERED_WS_BYTES = 1_000_000;
 
 export const useRealtimeAnalysis = (
     videoRef: RefObject<HTMLVideoElement>,
@@ -25,7 +26,6 @@ export const useRealtimeAnalysis = (
     const peopleRef = useRef<RealtimePerson[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
     const sendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const awaitingResponseRef = useRef(false);
     const manualStopRef = useRef(false);
     const frameCounterRef = useRef(0);
 
@@ -34,7 +34,6 @@ export const useRealtimeAnalysis = (
             clearTimeout(sendTimeoutRef.current);
             sendTimeoutRef.current = null;
         }
-        awaitingResponseRef.current = false;
     }, []);
 
     const scheduleNextFrame = useCallback((delayMs = intervalMs) => {
@@ -46,7 +45,7 @@ export const useRealtimeAnalysis = (
             sendTimeoutRef.current = null;
 
             const ws = wsRef.current;
-            if (!ws || ws.readyState !== WebSocket.OPEN || awaitingResponseRef.current || manualStopRef.current) {
+            if (!ws || ws.readyState !== WebSocket.OPEN || manualStopRef.current) {
                 return;
             }
 
@@ -67,12 +66,20 @@ export const useRealtimeAnalysis = (
                 return;
             }
 
-            awaitingResponseRef.current = true;
+            if (ws.bufferedAmount > MAX_BUFFERED_WS_BYTES) {
+                scheduleNextFrame(RETRY_DELAY_MS);
+                return;
+            }
+
             try {
-                ws.send(JSON.stringify({ image: frame, timestamp: Date.now() }));
+                ws.send(JSON.stringify({
+                    image: frame,
+                    frame_id: frameCounterRef.current,
+                    timestamp: Date.now(),
+                }));
+                scheduleNextFrame(intervalMs);
             } catch (err) {
                 console.error('[WS] Send error:', err);
-                awaitingResponseRef.current = false;
                 ws.close();
             }
         }, delayMs);
@@ -106,8 +113,6 @@ export const useRealtimeAnalysis = (
             if (wsRef.current !== ws) {
                 return;
             }
-            awaitingResponseRef.current = false;
-
             try {
                 const data = realtimeCamApi.normalizeResponse(JSON.parse(event.data));
                 peopleRef.current = data.people;
@@ -152,7 +157,6 @@ export const useRealtimeAnalysis = (
                 setLatencyMs(0);
             }
 
-            scheduleNextFrame(intervalMs);
         };
 
         ws.onclose = () => {
