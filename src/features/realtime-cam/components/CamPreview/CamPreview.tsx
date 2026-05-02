@@ -5,6 +5,7 @@ import { drawKeypoints, drawSkeleton, mapCanvasPoint, type OverlayConfig } from 
 type CamPreviewProps = {
     isActive: boolean;
     peopleRef: MutableRefObject<RealtimePerson[]>;
+    debugMode?: boolean;
 };
 
 const drawBoundingBoxes = (
@@ -30,16 +31,21 @@ const drawBoundingBoxes = (
         ctx.fillRect(left, top, width, height);
         ctx.strokeRect(left, top, width, height);
 
-        // Task #10: Improved overlay debug info
         const lines = [
-            `Track #${person.track_id}`,
-            person.identity || 'Unknown',
-            `V:${person.raw_prob?.toFixed(2) ?? '0.00'} E:${person.ema_prob?.toFixed(2) ?? person.violence_prob.toFixed(2)}`,
-            `T:${person.threshold_on?.toFixed(2) ?? '0.00'}/${person.threshold_off?.toFixed(2) ?? '0.00'} C:${person.consecutive_violent_frames ?? 0}/${person.required_consecutive_frames ?? 0}`,
-            `B:${person.temporal_buffer_size ?? 0}/${person.temporal_window_size ?? 0} F:${person.effective_fps?.toFixed(1) ?? '0.0'}`,
-            ...(person.frames_until_alert !== undefined ? [`A:${person.frames_until_alert} ready:${person.frames_until_ready ?? 0}`] : []),
-            ...(person.interaction_score > 0.1 ? [`I:${person.interaction_score.toFixed(2)}`] : []),
             ...(person.identity_locked ? ['[LOCKED]'] : []),
+            person.identity || 'Unknown Person',
+            ...(person.violence_state ? ['⚠ Possible Aggressive Interaction'] : []),
+            ...(person.interaction_score > 0.3 ? [`Confidence: ${(person.violence_prob * 100).toFixed(0)}%`] : []),
+            ...(debugMode
+                ? [
+                    `Track #${person.track_id}`,
+                    `V:${person.raw_prob?.toFixed(2) ?? '0.00'} E:${person.ema_prob?.toFixed(2) ?? person.violence_prob.toFixed(2)}`,
+                    `T:${person.threshold_on?.toFixed(2) ?? '0.00'}/${person.threshold_off?.toFixed(2) ?? '0.00'} C:${person.consecutive_violent_frames ?? 0}/${person.required_consecutive_frames ?? 0}`,
+                    `B:${person.temporal_buffer_size ?? 0}/${person.temporal_window_size ?? 0} F:${person.effective_fps?.toFixed(1) ?? '0.0'}`,
+                    ...(person.frames_until_alert !== undefined ? [`A:${person.frames_until_alert} ready:${person.frames_until_ready ?? 0}`] : []),
+                    ...(person.interaction_score > 0.1 ? [`I:${person.interaction_score.toFixed(2)}`] : []),
+                ]
+                : []),
         ];
 
         ctx.font = '12px monospace';
@@ -58,7 +64,7 @@ const drawBoundingBoxes = (
 };
 
 export const CamPreview = forwardRef<HTMLVideoElement, CamPreviewProps>(
-    ({ isActive, peopleRef }, ref) => {
+    ({ isActive, peopleRef, debugMode = false }, ref) => {
         const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
         const getVideoElement = useCallback(() => {

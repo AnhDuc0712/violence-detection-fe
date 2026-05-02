@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useCamera } from '@/features/realtime-cam/hooks/useCamera';
 import { useRealtimeAnalysis } from '@/features/realtime-cam/hooks/useRealtimeAnalysis';
 import { useDetectionHistory } from '@/features/realtime-cam/hooks/useDetectionHistory';
@@ -6,6 +6,7 @@ import { CamPreview, CamControls, CamStatusBadge, DetectionEventList } from '@/f
 
 export const RealtimeCamPage = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [debugMode] = useState(() => new URLSearchParams(window.location.search).get('debug') === 'true');
 
     const { status, setStatus, errorMsg, startCamera, stopCamera } = useCamera();
     const { alerts, addAlerts, clearHistory, highConfidenceCount } = useDetectionHistory();
@@ -14,8 +15,10 @@ export const RealtimeCamPage = () => {
         peopleRef,
         peopleCount,
         latencyMs,
+        effectiveFps,
         isConnected,
         sessionId,
+        sessionMetrics,
         wsActiveCount,
         startAnalysis,
         stopAnalysis,
@@ -39,6 +42,10 @@ export const RealtimeCamPage = () => {
         stopCamera();
         clearHistory();
     };
+
+    const queueHealth = (sessionMetrics?.dropped_frames_10s ?? 0) > 5
+        ? 'Frame Drops Detected'
+        : 'Realtime Stable';
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -69,8 +76,8 @@ export const RealtimeCamPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                 <div className="bg-white border rounded-lg p-4 shadow-sm">
-                    <div className="text-sm text-gray-500 mb-1">Doi tuong dang thay</div>
-                    <div className="text-2xl font-bold text-gray-800">{peopleCount}</div>
+                    <div className="text-sm text-gray-500 mb-1">Realtime FPS</div>
+                    <div className="text-2xl font-bold text-gray-800">{effectiveFps > 0 ? effectiveFps.toFixed(1) : '--'}</div>
                 </div>
                 <div className="bg-white border rounded-lg p-4 shadow-sm">
                     <div className="text-sm text-gray-500 mb-1">Do tre khung gan nhat</div>
@@ -83,12 +90,39 @@ export const RealtimeCamPage = () => {
                     </div>
                 </div>
                 <div className="bg-white border rounded-lg p-4 shadow-sm">
-                    <div className="text-sm text-gray-500 mb-1">Session ID</div>
-                    <div className="text-sm font-mono text-gray-800 break-all">{sessionId ?? '--'}</div>
+                    <div className="text-sm text-gray-500 mb-1">Active Tracks</div>
+                    <div className="text-2xl font-bold text-gray-800">{sessionMetrics?.track_count ?? peopleCount}</div>
                 </div>
                 <div className="bg-white border rounded-lg p-4 shadow-sm">
-                    <div className="text-sm text-gray-500 mb-1">Active WS</div>
-                    <div className="text-2xl font-bold text-gray-800">{wsActiveCount}</div>
+                    <div className="text-sm text-gray-500 mb-1">Queue Health</div>
+                    <div className={`text-sm font-bold ${queueHealth === 'Realtime Stable' ? 'text-green-600' : 'text-red-600'}`}>
+                        {queueHealth}
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Dropped Frames</div>
+                    <div className="text-xl font-bold text-gray-800">{sessionMetrics?.frames_dropped ?? 0}</div>
+                    <div className="text-xs text-gray-500 mt-1">10s: {sessionMetrics?.dropped_frames_10s ?? 0}</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Frame Queue</div>
+                    <div className="text-xl font-bold text-gray-800">{sessionMetrics?.queue_depth ?? 0}</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Result Queue</div>
+                    <div className="text-xl font-bold text-gray-800">{sessionMetrics?.result_queue_depth ?? 0}</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Alert Count</div>
+                    <div className="text-xl font-bold text-gray-800">{sessionMetrics?.alert_count ?? alerts.length}</div>
+                </div>
+                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Session Status</div>
+                    <div className="text-sm font-mono text-gray-800 break-all">{sessionId ?? '--'}</div>
+                    <div className="text-xs text-gray-500 mt-1">WS {wsActiveCount}</div>
                 </div>
             </div>
 
@@ -98,6 +132,7 @@ export const RealtimeCamPage = () => {
                         ref={videoRef}
                         isActive={status !== 'idle' && status !== 'error'}
                         peopleRef={peopleRef}
+                        debugMode={debugMode}
                     />
                     <CamControls
                         status={status}

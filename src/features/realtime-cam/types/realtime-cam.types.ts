@@ -12,6 +12,12 @@ export type DetectionEvent = {
     score: number;
     timestamp: number;
     message?: string;
+    semantic_message?: string;
+    semantic_confidence?: number;
+    interaction_pair?: number[];
+    aggressor_track_id?: number;
+    victim_track_id?: number;
+    alert_state?: 'DETECTED' | 'ACTIVE' | 'RESOLVED';
 };
 
 export type RealtimePerson = {
@@ -52,9 +58,24 @@ export interface AnalysisFrameResponse {
     people: RealtimePerson[];
     alerts: DetectionEvent[];
     latency_ms: number;
+    effective_fps?: number;
 }
 
 export interface AnalysisFrameRequest {
     image: string;
     timestamp: number;
 }
+
+export type RealtimeSessionMetrics = {
+    session_id: string;
+    frames_received: number;
+    frames_processed: number;
+    frames_dropped: number;
+    dropped_frames_10s: number;
+    avg_latency_ms: number;
+    queue_depth: number;
+    result_queue_depth: number;
+    effective_fps: number;
+    track_count: number;
+    alert_count: number;
+};

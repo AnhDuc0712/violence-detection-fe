@@ -12,20 +12,21 @@ export const useDetectionHistory = () => {
             const merged = [...prev];
 
             newAlerts.forEach((alert) => {
-                const last = merged[0];
-
-                if (
-                    last &&
-                    last.event_type === alert.event_type &&
-                    Math.abs(last.timestamp - alert.timestamp) < 1000
-                ) {
+                const existingIndex = merged.findIndex((item) => item.id === alert.id);
+                if (existingIndex >= 0) {
+                    merged[existingIndex] = {
+                        ...merged[existingIndex],
+                        ...alert,
+                    };
                     return;
                 }
 
                 merged.unshift(alert);
             });
 
-            return merged.slice(0, MAX_HISTORY);
+            return merged
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, MAX_HISTORY);
         });
     }, []);
 
@@ -33,7 +34,9 @@ export const useDetectionHistory = () => {
 
     const recentWindow = alerts.slice(0, 5);
 
-    const violentCount = recentWindow.filter((alert) => alert.event_type === 'violent').length;
+    const violentCount = recentWindow.filter(
+        (alert) => alert.event_type === 'violent' && alert.alert_state !== 'RESOLVED',
+    ).length;
 
     const smoothedLabel = violentCount >= 3 ? 'violent' : 'normal';
 
@@ -44,7 +47,7 @@ export const useDetectionHistory = () => {
     const isAlerting = smoothedLabel === 'violent' && avgConfidence > 0.7;
 
     const highConfidenceCount = alerts.filter(
-        (alert) => alert.event_type === 'violent' && alert.score >= 0.8
+        (alert) => alert.event_type === 'violent' && alert.score >= 0.8 && alert.alert_state !== 'RESOLVED'
     ).length;
 
     return {

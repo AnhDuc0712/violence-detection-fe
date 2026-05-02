@@ -1,4 +1,4 @@
-import type { AnalysisFrameResponse, DetectionEvent, RealtimePerson } from '../types/realtime-cam.types';
+import type { AnalysisFrameResponse, DetectionEvent, RealtimePerson, RealtimeSessionMetrics } from '../types/realtime-cam.types';
 
 const REALTIME_PATH = '/api/v1/ws/realtime-v2';
 
@@ -82,7 +82,7 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 violence_state: Boolean(record.violence_state ?? record.is_violent ?? (String(record.label ?? '') === 'violence')),
                 det_conf: Math.max(0, Math.min(1, toSafeNumber(record.det_conf, 0))),
                 status: String(record.status ?? 'unknown'),
-                ema_prob: violenceProb,
+                ema_prob: Math.max(0, Math.min(1, toSafeNumber(record.ema_prob, violenceProb))),
                 threshold_on: Math.max(0, Math.min(1, toSafeNumber(record.threshold_on, 0))),
                 threshold_off: Math.max(0, Math.min(1, toSafeNumber(record.threshold_off, 0))),
                 consecutive_violent_frames: Math.max(0, Math.trunc(toSafeNumber(record.consecutive_violent_frames, 0))),
@@ -120,6 +120,16 @@ const normalizeAlerts = (value: unknown): DetectionEvent[] => {
             event_type: eventType,
             score: Math.max(0, Math.min(1, toSafeNumber(record.score ?? record.confidence, 0))),
             timestamp,
+            semantic_message: typeof record.semantic_message === 'string' ? record.semantic_message : undefined,
+            semantic_confidence: Math.max(0, Math.min(1, toSafeNumber(record.semantic_confidence, record.score ?? record.confidence ?? 0))),
+            interaction_pair: Array.isArray(record.interaction_pair)
+                ? record.interaction_pair.map((value) => Math.max(0, Math.trunc(toSafeNumber(value, 0))))
+                : undefined,
+            aggressor_track_id: Math.max(0, Math.trunc(toSafeNumber(record.aggressor_track_id, 0))),
+            victim_track_id: Math.max(0, Math.trunc(toSafeNumber(record.victim_track_id, 0))),
+            alert_state: ['DETECTED', 'ACTIVE', 'RESOLVED'].includes(String(record.alert_state))
+                ? (String(record.alert_state) as DetectionEvent['alert_state'])
+                : 'DETECTED',
         };
 
         if (typeof record.message === 'string') {
@@ -165,6 +175,49 @@ export const realtimeCamApi = {
             people: normalizePeople(record.people),
             alerts: normalizeAlerts(record.alerts ?? record.events),
             latency_ms: Math.max(0, Math.trunc(toSafeNumber(record.latency_ms, 0))),
+            effective_fps: Math.max(0, toSafeNumber(record.effective_fps, 0)),
+        };
+    },
+
+    getRealtimeSessionMetrics: async (baseUrl: string, sessionId: string): Promise<RealtimeSessionMetrics | null> => {
+        const url = new URL(baseUrl || window.location.origin, window.location.origin);
+        const cleanPath = url.pathname.replace(/\/$/, '');
+        url.pathname = (
+            cleanPath.endsWith('/api/v1')
+                ? `${cleanPath}/ws/realtime-v2/metrics`
+                : `${cleanPath}/api/v1/ws/realtime-v2/metrics`
+        ).replace(/\/{2,}/g, '/');
+        url.search = '';
+        url.hash = '';
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) {
+            return null;
+        }
+
+        const payload = await response.json() as { sessions?: Array<Record<string, unknown>> };
+        const session = Array.isArray(payload.sessions)
+            ? payload.sessions.find((item) => String(item.session_id ?? '') === sessionId)
+            : undefined;
+        if (!session) {
+            return null;
+        }
+
+        return {
+            session_id: String(session.session_id ?? sessionId),
+            frames_received: Math.max(0, Math.trunc(toSafeNumber(session.frames_received, 0))),
+            frames_processed: Math.max(0, Math.trunc(toSafeNumber(session.frames_processed, 0))),
+            frames_dropped: Math.max(0, Math.trunc(toSafeNumber(session.frames_dropped, 0))),
+            dropped_frames_10s: Math.max(0, Math.trunc(toSafeNumber(session.dropped_frames_10s, 0))),
+            avg_latency_ms: Math.max(0, toSafeNumber(session.avg_latency_ms, 0)),
+            queue_depth: Math.max(0, Math.trunc(toSafeNumber(session.queue_depth, 0))),
+            result_queue_depth: Math.max(0, Math.trunc(toSafeNumber(session.result_queue_depth, 0))),
+            effective_fps: Math.max(0, toSafeNumber(session.effective_fps, 0)),
+            track_count: Math.max(0, Math.trunc(toSafeNumber(session.track_count, 0))),
+            alert_count: Math.max(0, Math.trunc(toSafeNumber(session.alert_count, 0))),
         };
     },
 };

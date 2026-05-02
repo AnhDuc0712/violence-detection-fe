@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, type RefObject } from 'react';
 import { realtimeCamApi } from '../api/realtime-cam.api';
 import { useFrameCapture } from './useFrameCapture';
-import type { DetectionEvent, CamStatus, RealtimePerson } from '../types/realtime-cam.types';
+import type { DetectionEvent, CamStatus, RealtimePerson, RealtimeSessionMetrics } from '../types/realtime-cam.types';
 
 const FRAME_SKIP_INTERVAL = 1;
 const DEFAULT_CAPTURE_INTERVAL_MS = 200;
@@ -24,6 +24,8 @@ export const useRealtimeAnalysis = (
     const [latencyMs, setLatencyMs] = useState(0);
     const [isConnected, setIsConnected] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [effectiveFps, setEffectiveFps] = useState(0);
+    const [sessionMetrics, setSessionMetrics] = useState<RealtimeSessionMetrics | null>(null);
 
     const peopleRef = useRef<RealtimePerson[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
@@ -134,6 +136,7 @@ export const useRealtimeAnalysis = (
                 peopleRef.current = data.people;
                 setPeopleCount(data.people.length);
                 setLatencyMs(data.latency_ms);
+                setEffectiveFps(data.effective_fps ?? data.people[0]?.effective_fps ?? 0);
                 lastLatencyRef.current = data.latency_ms;
                 setIsConnected(true);
                 setSessionId(data.session_id ?? null);
@@ -190,6 +193,8 @@ export const useRealtimeAnalysis = (
             peopleRef.current = [];
             setPeopleCount(0);
             setLatencyMs(0);
+            setEffectiveFps(0);
+            setSessionMetrics(null);
             setSessionId(null);
 
             if (manualStopRef.current) {
@@ -210,6 +215,36 @@ export const useRealtimeAnalysis = (
         wsRef.current = ws;
     }, [camStatus, clearLoop, intervalMs, onAlerts, scheduleNextFrame, setCamStatus]);
 
+    useEffect(() => {
+        if (!isConnected || !sessionId) {
+            setSessionMetrics(null);
+            return;
+        }
+
+        let cancelled = false;
+        const source = import.meta.env.VITE_API_URL || window.location.origin;
+
+        const pollMetrics = async () => {
+            try {
+                const metrics = await realtimeCamApi.getRealtimeSessionMetrics(source, sessionId);
+                if (!cancelled) {
+                    setSessionMetrics(metrics);
+                }
+            } catch {
+                if (!cancelled) {
+                    setSessionMetrics(null);
+                }
+            }
+        };
+
+        pollMetrics();
+        const intervalId = window.setInterval(pollMetrics, 2000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [isConnected, sessionId]);
+
     const stopAnalysis = useCallback(() => {
         manualStopRef.current = true;
         clearLoop();
@@ -226,6 +261,8 @@ export const useRealtimeAnalysis = (
         peopleRef.current = [];
         setPeopleCount(0);
         setLatencyMs(0);
+        setEffectiveFps(0);
+        setSessionMetrics(null);
         setSessionId(null);
         setCamStatus('active');
         frameCounterRef.current = 0;
@@ -236,7 +273,9 @@ export const useRealtimeAnalysis = (
             peopleRef.current = [];
             setPeopleCount(0);
             setLatencyMs(0);
+            setEffectiveFps(0);
             setIsConnected(false);
+            setSessionMetrics(null);
             setSessionId(null);
         }
     }, [camStatus]);
@@ -262,8 +301,10 @@ export const useRealtimeAnalysis = (
         peopleRef,
         peopleCount,
         latencyMs,
+        effectiveFps,
         isConnected,
         sessionId,
+        sessionMetrics,
         wsActiveCount: isConnected ? 1 : 0,
         startAnalysis,
         stopAnalysis,
