@@ -71,9 +71,9 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 bbox,
                 keypoints,
                 violence_prob: violenceProb,
-                raw_prob: Math.max(0, Math.min(1, toSafeNumber(record.raw_prob, violenceProb))),
-                bilstm_prob: Math.max(0, Math.min(1, toSafeNumber(record.bilstm_prob, 0))),
-                xgb_prob: Math.max(0, Math.min(1, toSafeNumber(record.xgb_prob, 0))),
+                raw_prob: toSafeNumber(record.raw_prob, 0),
+                bilstm_prob: toSafeNumber(record.bilstm_prob, 0),
+                xgb_prob: toSafeNumber(record.xgb_prob, 0),
                 label: String(record.label ?? 'unknown'),
                 identity: String(record.identity ?? 'Unknown'),
                 identity_source: String(record.identity_source ?? 'unknown'),
@@ -82,7 +82,7 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 violence_state: Boolean(record.violence_state ?? record.is_violent ?? (String(record.label ?? '') === 'violence')),
                 det_conf: Math.max(0, Math.min(1, toSafeNumber(record.det_conf, 0))),
                 status: String(record.status ?? 'unknown'),
-                ema_prob: Math.max(0, Math.min(1, toSafeNumber(record.ema_prob, violenceProb))),
+                ema_prob: person.violence_prob?.toFixed(3) ?? '0.000',
                 threshold_on: Math.max(0, Math.min(1, toSafeNumber(record.threshold_on, 0))),
                 threshold_off: Math.max(0, Math.min(1, toSafeNumber(record.threshold_off, 0))),
                 consecutive_violent_frames: Math.max(0, Math.trunc(toSafeNumber(record.consecutive_violent_frames, 0))),
@@ -99,7 +99,7 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 interaction_score: Math.max(0, Math.min(1, toSafeNumber(record.interaction_score, 0))),
             } satisfies RealtimePerson;
         })
-        .filter((person): person is RealtimePerson => person !== null);
+        .filter(Boolean) as RealtimePerson[];
 };
 
 const normalizeAlerts = (value: unknown): DetectionEvent[] => {
