@@ -121,7 +121,7 @@ const normalizeAlerts = (value: unknown): DetectionEvent[] => {
             score: Math.max(0, Math.min(1, toSafeNumber(record.score ?? record.confidence, 0))),
             timestamp,
             semantic_message: typeof record.semantic_message === 'string' ? record.semantic_message : undefined,
-            semantic_confidence: Math.max(0, Math.min(1, toSafeNumber(record.semantic_confidence, record.score ?? record.confidence ?? 0))),
+            semantic_confidence: Math.max(0, Math.min(1, toSafeNumber(record.score, toSafeNumber(record.confidence, 0)))),
             interaction_pair: Array.isArray(record.interaction_pair)
                 ? record.interaction_pair.map((value) => Math.max(0, Math.trunc(toSafeNumber(value, 0))))
                 : undefined,

@@ -1,7 +1,9 @@
 import { forwardRef, useCallback, useEffect, useRef, type MutableRefObject, type RefObject } from 'react';
 import type { RealtimePerson } from '../../types/realtime-cam.types';
 import { drawKeypoints, drawSkeleton, mapCanvasPoint, type OverlayConfig } from '@/shared/lib/drawSkeleton';
-
+const debugMode =
+    new URLSearchParams(window.location.search)
+        .get('debug') === 'true';
 type CamPreviewProps = {
     isActive: boolean;
     peopleRef: MutableRefObject<RealtimePerson[]>;
