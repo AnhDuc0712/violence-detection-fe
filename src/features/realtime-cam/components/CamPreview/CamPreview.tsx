@@ -23,20 +23,26 @@ const drawBoundingBoxes = (
         const width = Math.abs(x2 - x1);
         const height = Math.abs(y2 - y1);
 
-        const stroke = person.violence_state ? '#ef4444' : '#22c55e';
-        const fill = person.violence_state ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.12)';
+        // Only render aggressive style if has active alert AND semantic aggression is valid
+        // Motion-only cases get green boxes regardless of violation_state
+        const renderAggressive = person.has_active_alert && !person.is_motion_only;
+        const stroke = renderAggressive ? '#ef4444' : '#22c55e';
+        const fill = renderAggressive ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.12)';
 
         ctx.save();
         ctx.strokeStyle = stroke;
         ctx.fillStyle = fill;
-        ctx.lineWidth = person.violence_state ? 3 : 2;
+        ctx.lineWidth = renderAggressive ? 3 : 2;
         ctx.fillRect(left, top, width, height);
         ctx.strokeRect(left, top, width, height);
 
         const lines = [
             ...(person.identity_locked ? ['[LOCKED]'] : []),
             person.identity || 'Unknown Person',
-            ...(person.violence_state ? ['⚠ Possible Aggressive Interaction'] : []),
+            // Only show aggressive warning if has active alert and semantic aggression is valid
+            ...(renderAggressive ? ['⚠ Possible Aggressive Interaction'] : []),
+            // For motion-only, show neutral activity level
+            ...(person.is_motion_only && person.has_active_alert ? ['📊 Elevated Motion Activity'] : []),
             ...(person.interaction_score > 0.3 ? [`Confidence: ${(person.violence_prob * 100).toFixed(0)}%`] : []),
             ...(debugMode
                 ? [
@@ -45,7 +51,7 @@ const drawBoundingBoxes = (
                     `T:${person.threshold_on?.toFixed(2) ?? '0.00'}/${person.threshold_off?.toFixed(2) ?? '0.00'} C:${person.consecutive_violent_frames ?? 0}/${person.required_consecutive_frames ?? 0}`,
                     `B:${person.temporal_buffer_size ?? 0}/${person.temporal_window_size ?? 0} F:${person.effective_fps?.toFixed(1) ?? '0.0'}`,
                     ...(person.frames_until_alert !== undefined ? [`A:${person.frames_until_alert} ready:${person.frames_until_ready ?? 0}`] : []),
-                    ...(person.interaction_score > 0.1 ? [`I:${person.interaction_score.toFixed(2)}`] : []),
+                    ...(person.interaction_score > 0.1 ? [`I:${person.interaction_score.toFixed(2)} M:${person.is_motion_only ? 'Y' : 'N'}`] : []),
                 ]
                 : []),
         ];

@@ -51,6 +51,9 @@ export type RealtimePerson = {
     identity_locked: boolean;
     identity_votes_count: number;
     interaction_score: number;
+    has_active_alert?: boolean;
+    is_motion_only?: boolean;
+    semantic_aggression_valid?: boolean;
 };
 
 export interface AnalysisFrameResponse {

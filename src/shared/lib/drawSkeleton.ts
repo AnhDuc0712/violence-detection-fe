@@ -44,7 +44,9 @@ export const drawKeypoints = (
     ctx.save();
 
     for (const person of people) {
-        ctx.fillStyle = person.violence_state ? '#ef4444' : '#22c55e';
+        // Render red ONLY if has active alert and aggression is valid, not from violation_state
+        const renderAggressive = person.has_active_alert && !person.is_motion_only;
+        ctx.fillStyle = renderAggressive ? '#ef4444' : '#22c55e';
 
         for (const [x, y, conf] of person.keypoints) {
             if (conf < MIN_CONF) {
@@ -69,8 +71,10 @@ export const drawSkeleton = (
     ctx.save();
 
     for (const person of people) {
-        ctx.strokeStyle = person.violence_state ? 'rgba(239,68,68,0.85)' : 'rgba(34,197,94,0.75)';
-        ctx.lineWidth = person.violence_state ? 2.5 : 1.5;
+        // Render aggressive style ONLY if has active alert and aggression is valid
+        const renderAggressive = person.has_active_alert && !person.is_motion_only;
+        ctx.strokeStyle = renderAggressive ? 'rgba(239,68,68,0.85)' : 'rgba(34,197,94,0.75)';
+        ctx.lineWidth = renderAggressive ? 2.5 : 1.5;
 
         for (const [start, end] of SKELETON) {
             const p1 = person.keypoints[start];

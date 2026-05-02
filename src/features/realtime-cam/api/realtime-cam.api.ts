@@ -97,6 +97,9 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 identity_locked: Boolean(record.identity_locked ?? false),
                 identity_votes_count: Math.max(0, Math.trunc(toSafeNumber(record.identity_votes_count, 0))),
                 interaction_score: Math.max(0, Math.min(1, toSafeNumber(record.interaction_score, 0))),
+                has_active_alert: Boolean(record.has_active_alert ?? false),
+                is_motion_only: Boolean(record.is_motion_only ?? false),
+                semantic_aggression_valid: Boolean(record.semantic_aggression_valid ?? false),
             } satisfies RealtimePerson;
         })
         .filter(Boolean) as RealtimePerson[];
