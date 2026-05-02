@@ -19,7 +19,7 @@ export type RealtimePerson = {
     bbox: [number, number, number, number];
     keypoints: [number, number, number][];
     violence_prob: number;
-    raw_prob: number;
+    raw_prob?: number;
     bilstm_prob: number;
     xgb_prob: number;
     label: string;
@@ -30,6 +30,17 @@ export type RealtimePerson = {
     violence_state: boolean;
     det_conf: number;
     status: string;
+    ema_prob?: number;
+    threshold_on?: number;
+    threshold_off?: number;
+    consecutive_violent_frames?: number;
+    required_consecutive_frames?: number;
+    alert_cooldown_frames?: number;
+    temporal_buffer_size?: number;
+    temporal_window_size?: number;
+    frames_until_ready?: number;
+    frames_until_alert?: number;
+    effective_fps?: number;
     // DEBUG FIELDS (Task #6, #10)
     identity_locked: boolean;
     identity_votes_count: number;

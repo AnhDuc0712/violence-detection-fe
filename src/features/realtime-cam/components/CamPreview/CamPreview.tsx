@@ -34,13 +34,12 @@ const drawBoundingBoxes = (
         const lines = [
             `Track #${person.track_id}`,
             person.identity || 'Unknown',
-            `Violence: ${person.violence_prob.toFixed(2)}${person.violence_state ? ' ALERT' : ''}`,
-            // Debug info: show interaction score if multi-person
-            ...(person.interaction_score > 0.1 ? [`Interaction: ${person.interaction_score.toFixed(2)}`] : []),
-            // Debug info: show identity lock state
-            ...(person.identity_locked ? [`[LOCKED]`] : []),
-            // Debug info: show identity votes
-            ...(person.identity_votes_count > 0 ? [`Votes: ${person.identity_votes_count}/5`] : []),
+            `V:${person.raw_prob?.toFixed(2) ?? '0.00'} E:${person.ema_prob?.toFixed(2) ?? person.violence_prob.toFixed(2)}`,
+            `T:${person.threshold_on?.toFixed(2) ?? '0.00'}/${person.threshold_off?.toFixed(2) ?? '0.00'} C:${person.consecutive_violent_frames ?? 0}/${person.required_consecutive_frames ?? 0}`,
+            `B:${person.temporal_buffer_size ?? 0}/${person.temporal_window_size ?? 0} F:${person.effective_fps?.toFixed(1) ?? '0.0'}`,
+            ...(person.frames_until_alert !== undefined ? [`A:${person.frames_until_alert} ready:${person.frames_until_ready ?? 0}`] : []),
+            ...(person.interaction_score > 0.1 ? [`I:${person.interaction_score.toFixed(2)}`] : []),
+            ...(person.identity_locked ? ['[LOCKED]'] : []),
         ];
 
         ctx.font = '12px monospace';
