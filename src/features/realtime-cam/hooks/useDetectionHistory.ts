@@ -24,7 +24,16 @@ export const useDetectionHistory = () => {
                 merged.unshift(alert);
             });
 
-            return merged
+            const now = Date.now();
+            const RESOLVED_TTL_MS = 8000;
+            const pruned = merged.filter((item) => {
+                if (item.alert_state !== 'RESOLVED') {
+                    return true;
+                }
+                return now - (item.timestamp ?? now) <= RESOLVED_TTL_MS;
+            });
+
+            return pruned
                 .sort((a, b) => b.timestamp - a.timestamp)
                 .slice(0, MAX_HISTORY);
         });
