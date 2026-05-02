@@ -3,10 +3,12 @@ import { realtimeCamApi } from '../api/realtime-cam.api';
 import { useFrameCapture } from './useFrameCapture';
 import type { DetectionEvent, CamStatus, RealtimePerson } from '../types/realtime-cam.types';
 
-const FRAME_SKIP_INTERVAL = 2;
-const DEFAULT_CAPTURE_INTERVAL_MS = 300;
+const FRAME_SKIP_INTERVAL = 1;
+const DEFAULT_CAPTURE_INTERVAL_MS = 200;
 const RETRY_DELAY_MS = 120;
 const MAX_BUFFERED_WS_BYTES = 1_000_000;
+const HIGH_LATENCY_BACKOFF_MS = 260;
+const MODERATE_LATENCY_BACKOFF_MS = 220;
 
 export const useRealtimeAnalysis = (
     videoRef: RefObject<HTMLVideoElement>,
@@ -28,6 +30,7 @@ export const useRealtimeAnalysis = (
     const sendTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const manualStopRef = useRef(false);
     const frameCounterRef = useRef(0);
+    const lastLatencyRef = useRef(0);
 
     const clearLoop = useCallback(() => {
         if (sendTimeoutRef.current) {
@@ -35,6 +38,17 @@ export const useRealtimeAnalysis = (
             sendTimeoutRef.current = null;
         }
     }, []);
+
+    const getAdaptiveDelay = useCallback(() => {
+        const latency = lastLatencyRef.current;
+        if (latency >= 1400) {
+            return Math.max(intervalMs, HIGH_LATENCY_BACKOFF_MS);
+        }
+        if (latency >= 900) {
+            return Math.max(intervalMs, MODERATE_LATENCY_BACKOFF_MS);
+        }
+        return intervalMs;
+    }, [intervalMs]);
 
     const scheduleNextFrame = useCallback((delayMs = intervalMs) => {
         if (sendTimeoutRef.current) {
@@ -77,13 +91,15 @@ export const useRealtimeAnalysis = (
                     frame_id: frameCounterRef.current,
                     timestamp: Date.now(),
                 }));
-                scheduleNextFrame(intervalMs);
+                // Keep the sender decoupled from response timing, but back off slightly
+                // when observed latency rises so we stay in the 3-5 FPS range safely.
+                scheduleNextFrame(getAdaptiveDelay());
             } catch (err) {
                 console.error('[WS] Send error:', err);
                 ws.close();
             }
         }, delayMs);
-    }, [captureFrame, intervalMs, videoRef]);
+    }, [captureFrame, getAdaptiveDelay, intervalMs, videoRef]);
 
     const startAnalysis = useCallback(() => {
         if (!['active', 'disconnected'].includes(camStatus) || wsRef.current) {
@@ -118,6 +134,7 @@ export const useRealtimeAnalysis = (
                 peopleRef.current = data.people;
                 setPeopleCount(data.people.length);
                 setLatencyMs(data.latency_ms);
+                lastLatencyRef.current = data.latency_ms;
                 setIsConnected(true);
                 setSessionId(data.session_id ?? null);
 
