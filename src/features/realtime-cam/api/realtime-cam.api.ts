@@ -82,7 +82,7 @@ const normalizePeople = (value: unknown): RealtimePerson[] => {
                 violence_state: Boolean(record.violence_state ?? record.is_violent ?? (String(record.label ?? '') === 'violence')),
                 det_conf: Math.max(0, Math.min(1, toSafeNumber(record.det_conf, 0))),
                 status: String(record.status ?? 'unknown'),
-                ema_prob: person.violence_prob?.toFixed(3) ?? '0.000',
+                ema_prob: violenceProb,
                 threshold_on: Math.max(0, Math.min(1, toSafeNumber(record.threshold_on, 0))),
                 threshold_off: Math.max(0, Math.min(1, toSafeNumber(record.threshold_off, 0))),
                 consecutive_violent_frames: Math.max(0, Math.trunc(toSafeNumber(record.consecutive_violent_frames, 0))),
